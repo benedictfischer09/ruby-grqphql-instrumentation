@@ -4,7 +4,7 @@ require "graphql/opentracing/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "graphql-opentracing"
-  spec.version       = Graphql::Opentracing::VERSION
+  spec.version       = GraphQL::Opentracing::VERSION
   spec.authors       = ["Ben Fischer"]
   spec.email         = ["ben.fischer.810@gmail.com"]
 
@@ -29,6 +29,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "opentracing", "~> 0.5.0"
+  spec.add_dependency "activesupport"
   spec.add_development_dependency "graphql"
   spec.add_development_dependency "bundler", "~> 2.0"
   spec.add_development_dependency "rake", "~> 10.0"

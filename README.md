@@ -1,4 +1,4 @@
-# Graphql Opentracing
+# GraphQL Opentracing
 
 Open Tracing instrumentation for the [graphql gem](https://github.com/rmosolgo/graphql-ruby). By default it starts a new span for every request handled by graphql. It follows the open tracing tagging [semantic conventions](https://opentracing.io/specification/conventions)
 
@@ -26,12 +26,12 @@ require "graphql-opentracing"
 
 If you have setup `OpenTracing.global_tracer` you can turn on spans for all requests with just:
 ```
-    Graphql::Tracer.instrument
+    GraphQL::Tracer.instrument
 ```
 
 Under the hood the gem subscribes to graphql instrumentation events through ActiveSupport notifications framework. If you find the number of spans too noisy you can control which spans are reported though a callback like:
 ```
-Graphql::Tracer.instrument(
+GraphQl::Tracer.instrument(
     tracer: tracer,
     ignore_request: ->(name, started, finished, id, data) {  name == 'graphql.lex' }
 )
