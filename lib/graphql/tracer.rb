@@ -9,8 +9,8 @@ module GraphQL
       attr_accessor :ignore_request, :tracer
 
       IgnoreRequest = ->(_name, _started, _finished, _id, _data) { false }
-
-      def instrument(tracer: OpenTracing.global_tracer, ignore_request: IgnoreRequest)
+      CheckErrors = -> (_name, _started, _finished, _id, data) { data[:context]&.errors&.any? }
+      def instrument(tracer: OpenTracing.global_tracer, ignore_request: IgnoreRequest, check_errors: CheckErrors)
         begin
           require 'graphql'
         rescue LoadError
@@ -19,6 +19,7 @@ module GraphQL
         raise IncompatibleGemVersion unless compatible_version?
 
         @ignore_request = ignore_request
+        @check_errors = check_errors
         @tracer = tracer
         install_active_support_notifications
         subscribe_active_support_notifications
@@ -46,7 +47,7 @@ module GraphQL
             tags: tags,
             start_time: started)
 
-          span.set_tag("error", true) if data[:context]&.errors&.any? # TODO best way to detect errors
+          span.set_tag("error", true) if @check_errors.call(name, started, finished, id, data)
           span.finish(end_time: finished)
         end
       end

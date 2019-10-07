@@ -79,10 +79,13 @@ RSpec.describe GraphQL::Tracer do
         ).at_least(:once)
       end
 
-      xit 'tags the span as an error when the response is an error' do
+      it 'tags the span as an error when the response includes an error' do
         span = double(finish: true, set_tag: true)
         tracer = double(start_span: span)
-        described_class.instrument(tracer: tracer)
+        described_class.instrument(
+          tracer: tracer,
+          check_errors: -> (_name, _started, _finished, _id, data) { true }
+        )
         execute_query(query_string, context: { errors: ['a'] })
 
         expect(span).to have_received(:set_tag).at_least(:once)

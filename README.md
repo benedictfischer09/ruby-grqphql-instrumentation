@@ -37,6 +37,14 @@ GraphQl::Tracer.instrument(
 )
 ```
 
+If you have a bespoke way of passing errors in the response that is not part of context errors you can detect errors for tagging your spans through a callback:
+```
+GraphQl::Tracer.instrument(
+    tracer: tracer,
+    check_errors: ->(name, started, finished, id, data) { data[:context] == "whatever" }
+)
+```
+
 ## Development
 
 After checking out the repo, run `bundle install` to install dependencies. Then, run `rspec` to run the tests.
