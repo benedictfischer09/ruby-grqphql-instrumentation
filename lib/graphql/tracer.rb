@@ -21,17 +21,12 @@ module GraphQL
         @ignore_request = ignore_request
         @check_errors = check_errors
         @tracer = tracer
-        install_active_support_notifications
         subscribe_active_support_notifications
       end
 
       def compatible_version?
         # support for ActiveSupportNotificationsTracing
         Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new('1.7.0')
-      end
-
-      def install_active_support_notifications
-        GraphQL::Tracing.install(GraphQL::Tracing::ActiveSupportNotificationsTracing)
       end
 
       def subscribe_active_support_notifications

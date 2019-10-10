@@ -29,11 +29,17 @@ If you have setup `OpenTracing.global_tracer` you can turn on spans for all requ
     GraphQL::Tracer.instrument
 ```
 
-Under the hood the gem subscribes to graphql instrumentation events through ActiveSupport notifications framework. If you find the number of spans too noisy you can control which spans are reported though a callback like:
+You must also modify your GQL schema to add the ActiveSupportNotifications tracer provided by the GQL gem
+
+```
+tracer(GraphQL::Tracing::ActiveSupportNotificationsTracing)
+```
+
+Under the hood this gem subscribes to graphql instrumentation events through the ActiveSupport notifications framework. If you find the number of spans too noisy you can control which spans are reported though a callback like:
 ```
 GraphQl::Tracer.instrument(
     tracer: tracer,
-    ignore_request: ->(name, started, finished, id, data) {  name == 'graphql.lex' }
+    ignore_request: ->(name, started, finished, id, data) { !name.include? 'execute_query' }
 )
 ```
 

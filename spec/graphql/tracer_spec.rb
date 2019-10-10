@@ -13,24 +13,11 @@ class QueryType < GraphQL::Schema::Object
 end
 class SampleSchema < GraphQL::Schema
   query(QueryType)
+  tracer(GraphQL::Tracing::ActiveSupportNotificationsTracing)
 end
 
 RSpec.describe GraphQL::Tracer do
   describe '.instrument' do
-    it 'adds active support instrumentation' do
-      expect do
-        described_class.instrument
-      end.to change(GraphQL::Tracing.tracers, :count).by(1)
-    end
-
-    it 'detects existing active support instrumentation' do
-      GraphQL::Tracing.install(GraphQL::Tracing::ActiveSupportNotificationsTracing)
-
-      expect do
-        described_class.instrument
-      end.not_to change(GraphQL::Tracing.tracers, :count)
-    end
-
     context 'with instrumented schema' do
       let(:query_string) do
         <<-GRAPHQL
