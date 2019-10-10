@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    graphql-opentracing (0.1.0.pre)
+    graphql-opentracing (0.1.0)
       activesupport
       opentracing (~> 0.5.0)
 
