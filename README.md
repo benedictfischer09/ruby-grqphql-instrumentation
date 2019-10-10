@@ -1,8 +1,6 @@
-# Graphql::Opentracing
+# GraphQL Opentracing
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/graphql/opentracing`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+Open Tracing instrumentation for the [graphql gem](https://github.com/rmosolgo/graphql-ruby). By default it starts a new span for every request handled by graphql. It follows the open tracing tagging [semantic conventions](https://opentracing.io/specification/conventions)
 
 ## Installation
 
@@ -21,18 +19,45 @@ Or install it yourself as:
     $ gem install graphql-opentracing
 
 ## Usage
+First load the opentracing (Note: this won't automatically instrument the graphql gem)
+```
+require "graphql-opentracing"
+```
 
-TODO: Write usage instructions here
+If you have setup `OpenTracing.global_tracer` you can turn on spans for all requests with just:
+```
+    GraphQL::Tracer.instrument
+```
+
+You must also modify your GQL schema to add the ActiveSupportNotifications tracer provided by the GQL gem
+
+```
+tracer(GraphQL::Tracing::ActiveSupportNotificationsTracing)
+```
+
+Under the hood this gem subscribes to graphql instrumentation events through the ActiveSupport notifications framework. If you find the number of spans too noisy you can control which spans are reported though a callback like:
+```
+GraphQl::Tracer.instrument(
+    tracer: tracer,
+    ignore_request: ->(name, started, finished, id, data) { !name.include? 'execute_query' }
+)
+```
+
+If you have a bespoke way of passing errors in the response that is not part of context errors you can detect errors for tagging your spans through a callback:
+```
+GraphQl::Tracer.instrument(
+    tracer: tracer,
+    check_errors: ->(name, started, finished, id, data) { data[:context] == "whatever" }
+)
+```
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+After checking out the repo, run `bundle install` to install dependencies. Then, run `rspec` to run the tests.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/graphql-opentracing. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/benedictfischer09/ruby-graphql-instrumentation. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## License
 
@@ -40,4 +65,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the Graphql::Opentracing project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/graphql-opentracing/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/benedictfischer09/ruby-graphql-instrumentation/blob/master/CODE_OF_CONDUCT.md).
