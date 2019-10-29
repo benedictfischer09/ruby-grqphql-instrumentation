@@ -38,16 +38,9 @@ tracer(GraphQL::Tracing::ActiveSupportNotificationsTracing)
 Under the hood this gem subscribes to graphql instrumentation events through the ActiveSupport notifications framework. If you find the number of spans too noisy you can control which spans are reported though a callback like:
 ```
 GraphQl::Tracer.instrument(
+    schema: MyGQLSchema,
     tracer: tracer,
     ignore_request: ->(name, started, finished, id, data) { !name.include? 'execute_query' }
-)
-```
-
-If you have a bespoke way of passing errors in the response that is not part of context errors you can detect errors for tagging your spans through a callback:
-```
-GraphQl::Tracer.instrument(
-    tracer: tracer,
-    check_errors: ->(name, started, finished, id, data) { data[:context] == "whatever" }
 )
 ```
 
