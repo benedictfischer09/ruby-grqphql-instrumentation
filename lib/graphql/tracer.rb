@@ -1,16 +1,19 @@
+# frozen_string_literal: true
+
 require 'graphql/opentracing/version'
 require 'active_support'
 
 module GraphQL
   module Tracer
-    class IncompatibleGemVersion < StandardError; end;
+    class IncompatibleGemVersion < StandardError; end
 
     class << self
       attr_accessor :ignore_request, :tracer
 
-      IgnoreRequest = ->(_name, _started, _finished, _id, _data) { false }
-      CheckErrors = -> (_name, _started, _finished, _id, data) { data[:context]&.errors&.any? }
-      def instrument(tracer: OpenTracing.global_tracer, ignore_request: IgnoreRequest, check_errors: CheckErrors)
+      IgnoreRequest = ->(_name, _metadata) { false }
+
+      def instrument(schema: nil, tracer: OpenTracing.global_tracer,
+                     ignore_request: IgnoreRequest)
         begin
           require 'graphql'
         rescue LoadError
@@ -18,10 +21,10 @@ module GraphQL
         end
         raise IncompatibleGemVersion unless compatible_version?
 
+        @schema = schema
         @ignore_request = ignore_request
-        @check_errors = check_errors
         @tracer = tracer
-        subscribe_active_support_notifications
+        install_tracer
       end
 
       def compatible_version?
@@ -29,21 +32,23 @@ module GraphQL
         Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new('1.7.0')
       end
 
-      def subscribe_active_support_notifications
-        ActiveSupport::Notifications.subscribe(/^graphql/) do |name, started, finished, id, data|
-          next if @ignore_request.call(name, started, finished, id, data)
+      def install_tracer
+        @schema.tracer self if @schema
+      end
 
-          tags = {
-            "component" => "ruby-graphql",
-            "span.kind" => "server",
-            "operation" => name
-          }
-          span = tracer.start_span("graphql",
-            tags: tags,
-            start_time: started)
+      def trace(key, metadata)
+        return yield if @ignore_request.call(key, metadata)
 
-          span.set_tag("error", true) if @check_errors.call(name, started, finished, id, data)
-          span.finish(end_time: finished)
+        @tracer.start_active_span("graphql.#{key}", tags: {
+                                    'component' => 'ruby-graphql',
+                                    'span.kind' => 'server'
+                                  }) do |scope|
+          begin
+            yield
+          rescue StandardError
+            scope.span.set_tag('error', true)
+            raise
+          end
         end
       end
     end

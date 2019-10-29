@@ -13,7 +13,6 @@ class QueryType < GraphQL::Schema::Object
 end
 class SampleSchema < GraphQL::Schema
   query(QueryType)
-  tracer(GraphQL::Tracing::ActiveSupportNotificationsTracing)
 end
 
 RSpec.describe GraphQL::Tracer do
@@ -27,60 +26,65 @@ RSpec.describe GraphQL::Tracer do
         GRAPHQL
       end
 
-      it 'start and finshes a span for a GQL event' do
-        span = double(finish: true)
-        tracer = double(start_span: span)
-        described_class.instrument(tracer: tracer)
+      it 'starts a span for a GQL event' do
+        tracer = double(start_active_span: nil)
+        described_class.instrument(tracer: tracer, schema: SampleSchema)
         execute_query(query_string)
-        expect(tracer).to have_received(:start_span).at_least(:once)
-        expect(span).to have_received(:finish).at_least(:once)
+        expect(tracer).to have_received(:start_active_span).at_least(:once)
       end
 
       it 'can be configured to skip creating a span for some events' do
-        span = double(finish: true)
-        tracer = double(start_span: span)
+        tracer = double(start_active_span: nil)
         described_class.instrument(
+          schema: SampleSchema,
           tracer: tracer,
-          ignore_request: ->(name, _started, _finished, _id, _data) { name.include?('graphql') }
+          ignore_request: ->(_name, _data) { true }
         )
 
         execute_query(query_string)
-        expect(tracer).not_to have_received(:start_span)
-        expect(span).not_to have_received(:finish)
+        expect(tracer).not_to have_received(:start_active_span)
       end
 
       it 'follows semantic conventions for the span tags' do
-        span = double(finish: true)
-        tracer = double(start_span: span)
-        described_class.instrument(tracer: tracer)
+        tracer = double(start_active_span: nil)
+        described_class.instrument(schema: SampleSchema, tracer: tracer)
         execute_query(query_string)
 
-        expect(tracer).to have_received(:start_span).with(
-          'graphql',
-          start_time: anything,
+        expect(tracer).to have_received(:start_active_span).with(
+          'graphql.execute_multiplex',
           tags: {
             'component' => 'ruby-graphql',
-            'span.kind' => 'server',
-            'operation' => 'graphql.execute_query'
+            'span.kind' => 'server'
           }
         ).at_least(:once)
       end
 
-      it 'tags the span as an error when the response includes an error' do
-        span = double(finish: true, set_tag: true)
-        tracer = double(start_span: span)
-        described_class.instrument(
-          tracer: tracer,
-          check_errors: -> (_name, _started, _finished, _id, data) { true }
-        )
-        execute_query(query_string, context: { errors: ['a'] })
+      it 'tags the span as an error an exception is raised' do
+        allow_any_instance_of(QueryType).to receive(:hello).and_raise('error')
 
-        expect(span).to have_received(:set_tag).at_least(:once)
+        tracer = double
+        span = double(set_tag: nil)
+        scope = double(span: span)
+        allow(tracer).to receive(:start_active_span).and_yield(scope)
+        described_class.instrument(
+          schema: SampleSchema,
+          tracer: tracer
+        )
+        begin
+          execute_query(query_string)
+        rescue
+        end
+
+        expect(span).to have_received(:set_tag).with('error', true)
+                                               .at_least(:once)
       end
     end
 
     def execute_query(string, variables = {}, context: {})
-      GraphQL::Query.new(SampleSchema, string, variables: variables, context: context).result
+      GraphQL::Query.new(SampleSchema,
+                         string,
+                         variables: variables,
+                         context: context).result
     end
   end
 end
