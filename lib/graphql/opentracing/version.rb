@@ -1,5 +1,5 @@
 module GraphQL
   module Opentracing
-    VERSION = "0.2.0.pre"
+    VERSION = "0.2.0"
   end
 end
