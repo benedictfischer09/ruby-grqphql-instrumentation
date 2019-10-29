@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'graphql/opentracing/version'
-require 'active_support'
 
 module GraphQL
   module Tracer
